@@ -14,26 +14,28 @@ const {
   getComparisonAnalysis
 } = require('../controllers/schoolController');
 
-// Stats dan Analysis routes (harus di atas /:id)
+const { protect } = require('../middleware/auth');
+
+// Stats dan Analysis routes (public - untuk dashboard)
 router.get('/stats', getSchoolStats);
 router.get('/analysis/persebaran', getPersebaranAnalysis);
 router.get('/analysis/comparison', getComparisonAnalysis);
 
-// List routes
+// List routes (public)
 router.get('/kecamatan', getKecamatanList);
 router.get('/kabupaten', getKabupatenList);
 
-// Get by NPSN
+// Get by NPSN (public)
 router.get('/npsn/:npsn', getSchoolByNPSN);
 
 // CRUD routes
 router.route('/')
-  .get(getAllSchools)
-  .post(createSchool);
+  .get(getAllSchools)  // Public - untuk list sekolah
+  .post(protect, createSchool);  // Protected - hanya admin bisa create
 
 router.route('/:id')
-  .get(getSchoolById)
-  .put(updateSchool)
-  .delete(deleteSchool);
+  .get(getSchoolById)  // Public - untuk detail sekolah
+  .put(protect, updateSchool)  // Protected - hanya admin bisa update
+  .delete(protect, deleteSchool);  // Protected - hanya admin bisa delete
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+  const { spawn } = require('child_process');
 const path = require('path');
 
 const runCommand = (command, args) => {
@@ -29,19 +29,25 @@ const seedAll = async () => {
 
   try {
     // Step 1: Reset database
-    console.log('📋 Step 1/3: Resetting database...');
+    console.log('📋 Step 1/4: Resetting database...');
     console.log('───────────────────────────────────────────────────');
     await runCommand('node', ['seeders/reset-database.js']);
     console.log('\n');
 
-    // Step 2: Import schools
-    console.log('📋 Step 2/3: Importing schools data...');
+    // Step 2: Import admins
+    console.log('📋 Step 2/4: Importing admin accounts...');
+    console.log('───────────────────────────────────────────────────');
+    await runCommand('node', ['seeders/import-admins.js']);
+    console.log('\n');
+
+    // Step 3: Import schools
+    console.log('📋 Step 3/4: Importing schools data...');
     console.log('───────────────────────────────────────────────────');
     await runCommand('node', ['seeders/import-schools.js']);
     console.log('\n');
 
-    // Step 3: Import student statistics
-    console.log('📋 Step 3/3: Importing student statistics...');
+    // Step 4: Import student statistics
+    console.log('📋 Step 4/4: Importing student statistics...');
     console.log('───────────────────────────────────────────────────');
     await runCommand('node', ['seeders/import-students.js']);
     console.log('\n');

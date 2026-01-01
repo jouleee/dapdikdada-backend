@@ -8,6 +8,7 @@ const schoolRoutes = require('./routes/schoolRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const programRoutes = require('./routes/programRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 // Initialize express app
 const app = express();
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
     message: 'Welcome to Dashboard Monitoring Pendidikan API',
     version: '1.0.0',
     endpoints: {
+      auth: '/api/auth',
       schools: '/api/schools',
       students: '/api/students',
       programs: '/api/programs',
@@ -34,6 +36,7 @@ app.get('/', (req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/schools', schoolRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/programs', programRoutes);

@@ -10,6 +10,8 @@
     "seed:schools:destroy": "node seeders/import-schools.js -d",
     "seed:students": "node seeders/import-students.js",
     "seed:students:destroy": "node seeders/import-students.js -d",
+    "seed:admins": "node seeders/import-admins.js",
+    "seed:admins:destroy": "node seeders/import-admins.js -d",
     "db:reset": "node seeders/reset-database.js",
     "db:fresh": "node seeders/seed-all.js",
     "db:seed": "node seeders/seed-all.js",
@@ -24,10 +26,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.4.0"
   },
   "devDependencies": {
