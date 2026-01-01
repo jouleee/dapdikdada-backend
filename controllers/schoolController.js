@@ -33,11 +33,14 @@ exports.getAllSchools = async (req, res) => {
     }
 
     // Pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const skip = (pageNumber - 1) * limitNumber;
     const total = await School.countDocuments(query);
+    const totalPages = Math.max(1, Math.ceil(total / limitNumber));
     
     const schools = await School.find(query)
-      .limit(parseInt(limit))
+      .limit(limitNumber)
       .skip(skip)
       .sort({ nama_sekolah: 1 });
 
@@ -45,8 +48,15 @@ exports.getAllSchools = async (req, res) => {
       success: true,
       count: schools.length,
       total: total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / parseInt(limit)),
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: totalPages,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        total: total,
+        pages: totalPages
+      },
       data: schools
     });
   } catch (error) {
