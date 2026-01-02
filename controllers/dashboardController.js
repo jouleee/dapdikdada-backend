@@ -189,6 +189,9 @@ exports.getDashboardStats = async (req, res) => {
     // Query 4: Program count
     const totalPrograms = await EducationProgram.countDocuments();
 
+    // Query 5: Get total unique kabupaten/kota
+    const totalKabupaten = await School.distinct('nama_kabupaten_kota');
+
     res.status(200).json({
       success: true,
       data: {
@@ -196,7 +199,8 @@ exports.getDashboardStats = async (req, res) => {
           sekolah: schoolStats[0].overview[0] || {},
           siswa: studentStats[0].totalSiswa[0] || { total: 0 },
           programs: totalPrograms,
-          tahun_ajaran_tersedia: availableYears.sort()
+          tahun_ajaran_tersedia: availableYears.sort(),
+          total_kabupaten: totalKabupaten.length
         },
         sekolah: {
           byJenjang: schoolStats[0].byJenjang,
