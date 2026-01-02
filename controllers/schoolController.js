@@ -477,81 +477,110 @@ exports.getKabupatenList = async (req, res) => {
 // @access  Public
 exports.getPersebaranAnalysis = async (req, res) => {
   try {
-    const { jenjang } = req.query;
-    const matchStage = jenjang ? { jenjang: jenjang.toUpperCase() } : {};
+    const { jenjang, status, akreditasi, sortBy } = req.query;
+    
+    // Build match stage with filters
+    const matchStage = {};
+    if (jenjang) matchStage.jenjang = jenjang.toUpperCase();
+    if (status) matchStage.status_sekolah = status.toUpperCase();
+    if (akreditasi) matchStage.akreditasi = akreditasi;
 
-    // Complex aggregation dengan $bucket, $facet, dan conditional operators
-    const analysis = await School.aggregate([
-      { $match: matchStage },
-      {
-        $facet: {
-          // Analisis per kabupaten
-          perKabupaten: [
-            {
-              $group: {
-                _id: '$nama_kabupaten_kota',
-                total: { $sum: 1 },
-                negeri: { $sum: { $cond: [{ $eq: ['$status_sekolah', 'NEGERI'] }, 1, 0] } },
-                swasta: { $sum: { $cond: [{ $eq: ['$status_sekolah', 'SWASTA'] }, 1, 0] } },
-                by_jenjang: { $addToSet: '$jenjang' }
-              }
-            },
-            { $sort: { total: -1 } }
-          ],
-          // Bucketing berdasarkan jumlah siswa
-          byStudentSize: [
-            {
-              $bucket: {
-                groupBy: '$jumlah_siswa',
-                boundaries: [0, 100, 500, 1000, 2000, 5000],
-                default: '5000+',
-                output: {
-                  count: { $sum: 1 },
-                  schools: {
-                    $push: {
-                      nama: '$nama_sekolah',
-                      kabupaten: '$nama_kabupaten_kota',
-                      siswa: '$jumlah_siswa'
-                    }
-                  }
-                }
-              }
-            }
-          ],
-          // Density calculation per kecamatan
-          densityPerKecamatan: [
-            {
-              $group: {
-                _id: {
-                  kecamatan: '$kemendagri_nama_kecamatan',
-                  kabupaten: '$nama_kabupaten_kota'
-                },
-                jumlah_sekolah: { $sum: 1 },
-                jenjang_list: { $addToSet: '$jenjang' },
-                status_list: { $addToSet: '$status_sekolah' }
-              }
-            },
-            {
-              $project: {
-                kecamatan: '$_id.kecamatan',
-                kabupaten: '$_id.kabupaten',
-                jumlah_sekolah: 1,
-                kelengkapan_jenjang: { $size: '$jenjang_list' },
-                variasi_status: { $size: '$status_list' }
-              }
-            },
-            { $sort: { jumlah_sekolah: -1 } },
-            { $limit: 20 }
-          ]
-        }
+    // Determine sort order
+    let sortOrder = { totalSekolah: -1 }; // default: total desc
+    if (sortBy === 'total-asc') sortOrder = { totalSekolah: 1 };
+    else if (sortBy === 'name-asc') sortOrder = { _id: 1 };
+    else if (sortBy === 'name-desc') sortOrder = { _id: -1 };
+
+    // Get all schools with filter
+    const schools = await School.find(matchStage);
+    
+    // Group by kabupaten
+    const perKabupatenMap = {};
+    
+    schools.forEach(school => {
+      const kab = school.nama_kabupaten_kota;
+      if (!kab) return;
+      
+      if (!perKabupatenMap[kab]) {
+        perKabupatenMap[kab] = {
+          _id: kab,
+          totalSekolah: 0,
+          breakdown: {
+            SD: 0, SMP: 0, SMA: 0, SMK: 0, SLB: 0,
+            negeri: 0, swasta: 0
+          }
+        };
       }
-    ]);
+      
+      perKabupatenMap[kab].totalSekolah++;
+      
+      // Count by jenjang
+      if (school.jenjang) {
+        perKabupatenMap[kab].breakdown[school.jenjang] = 
+          (perKabupatenMap[kab].breakdown[school.jenjang] || 0) + 1;
+      }
+      
+      // Count by status
+      if (school.status_sekolah === 'NEGERI') {
+        perKabupatenMap[kab].breakdown.negeri++;
+      } else if (school.status_sekolah === 'SWASTA') {
+        perKabupatenMap[kab].breakdown.swasta++;
+      }
+    });
+    
+    // Convert to array
+    let perKabupaten = Object.values(perKabupatenMap);
+    
+    // Apply sorting
+    const sortKey = Object.keys(sortOrder)[0];
+    const sortDir = sortOrder[sortKey];
+    perKabupaten.sort((a, b) => {
+      if (sortKey === '_id') {
+        return sortDir * a._id.localeCompare(b._id);
+      }
+      return sortDir * (a.totalSekolah - b.totalSekolah);
+    });
+    
+    const totalSekolah = schools.length;
+    const totalKabupaten = perKabupaten.length;
+    
+    // Calculate persentase and density
+    perKabupaten = perKabupaten.map(kab => ({
+      ...kab,
+      persentase: totalSekolah > 0 ? (kab.totalSekolah / totalSekolah) * 100 : 0,
+      density: kab.totalSekolah > 100 ? 'high' : kab.totalSekolah > 50 ? 'medium' : 'low'
+    }));
+    
+    // Create distribution by jenjang (lebih mudah dipahami)
+    const jenjangDistribution = {
+      SD: 0, SMP: 0, SMA: 0, SMK: 0, SLB: 0
+    };
+    
+    schools.forEach(school => {
+      if (school.jenjang && jenjangDistribution.hasOwnProperty(school.jenjang)) {
+        jenjangDistribution[school.jenjang]++;
+      }
+    });
+    
+    const distributionArray = Object.entries(jenjangDistribution).map(([jenjang, jumlah]) => ({
+      jenjang,
+      jumlah,
+      persentase: totalSekolah > 0 ? ((jumlah / totalSekolah) * 100).toFixed(1) : 0
+    }));
 
     res.status(200).json({
       success: true,
-      data: analysis[0]
+      summary: {
+        totalKabupaten,
+        totalSekolah,
+        rataRataPerKabupaten: totalKabupaten > 0 ? totalSekolah / totalKabupaten : 0,
+        kabupatenTertinggi: perKabupaten[0] ? { nama: perKabupaten[0]._id, jumlah: perKabupaten[0].totalSekolah } : null
+      },
+      perKabupaten,
+      distribusiJenjang: distributionArray
     });
   } catch (error) {
+    console.error('Error in getPersebaranAnalysis:', error);
     res.status(500).json({
       success: false,
       message: 'Error mengambil analisis persebaran',
