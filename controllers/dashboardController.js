@@ -91,7 +91,7 @@ exports.getDashboardStats = async (req, res) => {
               }
             }
           ],
-          // Pipeline 5: Top kabupaten dengan aggregation complex
+          // Pipeline 5: Top kabupaten dengan breakdown per jenjang
           topKabupaten: [
             {
               $group: {
@@ -103,16 +103,41 @@ exports.getDashboardStats = async (req, res) => {
                 sekolah_swasta: {
                   $sum: { $cond: [{ $eq: ['$status_sekolah', 'SWASTA'] }, 1, 0] }
                 },
-                by_jenjang: {
-                  $push: {
-                    jenjang: '$jenjang',
-                    akreditasi: '$akreditasi'
-                  }
+                // Count schools by jenjang
+                SD: {
+                  $sum: { $cond: [{ $eq: ['$jenjang', 'SD'] }, 1, 0] }
+                },
+                SMP: {
+                  $sum: { $cond: [{ $eq: ['$jenjang', 'SMP'] }, 1, 0] }
+                },
+                SMA: {
+                  $sum: { $cond: [{ $eq: ['$jenjang', 'SMA'] }, 1, 0] }
+                },
+                SMK: {
+                  $sum: { $cond: [{ $eq: ['$jenjang', 'SMK'] }, 1, 0] }
+                },
+                SLB: {
+                  $sum: { $cond: [{ $eq: ['$jenjang', 'SLB'] }, 1, 0] }
                 }
               }
             },
             { $sort: { total_sekolah: -1 } },
-            { $limit: 10 }
+            { $limit: 10 },
+            {
+              $project: {
+                _id: 1,
+                total_sekolah: 1,
+                sekolah_negeri: 1,
+                sekolah_swasta: 1,
+                jenjang: {
+                  SD: '$SD',
+                  SMP: '$SMP',
+                  SMA: '$SMA',
+                  SMK: '$SMK',
+                  SLB: '$SLB'
+                }
+              }
+            }
           ],
           // Pipeline 6: Kecamatan dengan sekolah terbanyak
           topKecamatan: [
@@ -128,6 +153,17 @@ exports.getDashboardStats = async (req, res) => {
             },
             { $sort: { jumlah_sekolah: -1 } },
             { $limit: 15 }
+          ],
+          // Pipeline 7: Count unique kabupaten
+          uniqueKabupaten: [
+            {
+              $group: {
+                _id: '$nama_kabupaten_kota'
+              }
+            },
+            {
+              $count: 'total'
+            }
           ]
         }
       }

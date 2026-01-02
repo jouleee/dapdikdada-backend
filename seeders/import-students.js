@@ -10,9 +10,9 @@ const connectDB = require('../config/database');
 const CSV_FILES = {
   SD: 'jlm_siswa_sd.csv',
   SMP: 'jml_siswa_smp.csv',
+  SMA: 'jlm_siswa_sma.csv',
   SMK: 'jlm_siswa_smk.csv',
   SLB: 'jml_siswa_slb.csv'
-  // SMA tidak ada filenya
 };
 
 // Parse CSV dan import ke database
