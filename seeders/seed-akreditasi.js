@@ -41,7 +41,7 @@ function generateAkreditasi(npsn, jenjang) {
   } else if (random < 0.90) {
     return 'TT';
   } else {
-    return null; // Belum terakreditasi
+    return 'Belum Terakreditasi';
   }
 }
 
