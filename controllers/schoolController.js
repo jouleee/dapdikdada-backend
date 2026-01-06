@@ -477,13 +477,21 @@ exports.getKabupatenList = async (req, res) => {
 // @access  Public
 exports.getPersebaranAnalysis = async (req, res) => {
   try {
-    const { jenjang, status, akreditasi, sortBy } = req.query;
+    const { jenjang, status, akreditasi, sortBy, kabupaten } = req.query;
     
     // Build match stage with filters
     const matchStage = {};
     if (jenjang) matchStage.jenjang = jenjang.toUpperCase();
     if (status) matchStage.status_sekolah = status.toUpperCase();
-    if (akreditasi) matchStage.akreditasi = akreditasi;
+    if (akreditasi) {
+      // Mapping akreditasi label ke nilai di database
+      if (akreditasi === 'Tidak Terakreditasi') {
+        matchStage.akreditasi = 'TT';
+      } else {
+        matchStage.akreditasi = akreditasi;
+      }
+    }
+    if (kabupaten) matchStage.nama_kabupaten_kota = new RegExp(kabupaten, 'i');
 
     // Determine sort order
     let sortOrder = { totalSekolah: -1 }; // default: total desc
@@ -508,6 +516,11 @@ exports.getPersebaranAnalysis = async (req, res) => {
           breakdown: {
             SD: 0, SMP: 0, SMA: 0, SMK: 0, SLB: 0,
             negeri: 0, swasta: 0
+          },
+          akreditasiBreakdown: {
+            A: 0, B: 0, C: 0, 
+            'Tidak Terakreditasi': 0, 
+            'Belum Terakreditasi': 0
           }
         };
       }
@@ -525,6 +538,20 @@ exports.getPersebaranAnalysis = async (req, res) => {
         perKabupatenMap[kab].breakdown.negeri++;
       } else if (school.status_sekolah === 'SWASTA') {
         perKabupatenMap[kab].breakdown.swasta++;
+      }
+      
+      // Count by akreditasi
+      let akreditasiValue = school.akreditasi || 'Belum Terakreditasi';
+      
+      // Mapping nilai akreditasi dari database ke label yang ditampilkan
+      if (akreditasiValue === 'TT') {
+        akreditasiValue = 'Tidak Terakreditasi';
+      }
+      
+      if (perKabupatenMap[kab].akreditasiBreakdown.hasOwnProperty(akreditasiValue)) {
+        perKabupatenMap[kab].akreditasiBreakdown[akreditasiValue]++;
+      } else {
+        perKabupatenMap[kab].akreditasiBreakdown['Belum Terakreditasi']++;
       }
     });
     
