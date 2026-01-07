@@ -9,6 +9,9 @@ const studentRoutes = require('./routes/studentRoutes');
 const programRoutes = require('./routes/programRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const mySchoolRoutes = require('./routes/mySchoolRoutes');
+const adminSchoolRoutes = require('./routes/adminSchoolRoutes');
 
 // Initialize express app
 const app = express();
@@ -31,7 +34,12 @@ app.get('/', (req, res) => {
       schools: '/api/schools',
       students: '/api/students',
       programs: '/api/programs',
-      dashboard: '/api/dashboard'
+      dashboard: '/api/dashboard',
+      admin: {
+        users: '/api/admin/users',
+        mySchool: '/api/admin/my-school',
+        schools: '/api/admin/schools'
+      }
     }
   });
 });
@@ -41,6 +49,9 @@ app.use('/api/schools', schoolRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/programs', programRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin/users', adminRoutes);
+app.use('/api/admin/my-school', mySchoolRoutes);
+app.use('/api/admin/schools', adminSchoolRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

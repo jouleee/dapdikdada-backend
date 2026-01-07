@@ -45,12 +45,13 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       success: true,
+      token,  // Token di root level
       data: {
         _id: admin._id,
         name: admin.name,
         email: admin.email,
         role: admin.role,
-        token
+        isActive: admin.isActive
       }
     });
 
@@ -114,12 +115,13 @@ exports.login = async (req, res) => {
 
     res.json({
       success: true,
+      token,  // Token di root level
       data: {
         _id: admin._id,
         name: admin.name,
         email: admin.email,
         role: admin.role,
-        token
+        isActive: admin.isActive
       }
     });
 

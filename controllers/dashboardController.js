@@ -2,6 +2,51 @@ const School = require('../models/School');
 const StudentStatistic = require('../models/Student');
 const EducationProgram = require('../models/EducationProgram');
 
+// @desc    Get simple stats for admin dashboard
+// @route   GET /api/dashboard/admin-stats
+// @access  Private (Admin/Superadmin)
+exports.getAdminDashboardStats = async (req, res) => {
+  try {
+    // Get total schools
+    const totalSekolah = await School.countDocuments();
+    
+    // Get tahun ajaran terbaru
+    const latestYear = await StudentStatistic.find()
+      .sort({ tahun_ajaran: -1 })
+      .limit(1)
+      .select('tahun_ajaran');
+    
+    const tahunAjaran = latestYear.length > 0 ? latestYear[0].tahun_ajaran : null;
+    
+    // Get total students dari StudentStatistic collection dengan filter tahun ajaran terbaru
+    const totalSiswaResult = await StudentStatistic.aggregate([
+      { $match: tahunAjaran ? { tahun_ajaran: tahunAjaran } : {} },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$jumlah_siswa' }
+        }
+      }
+    ]);
+    const totalSiswa = totalSiswaResult.length > 0 ? totalSiswaResult[0].total : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalSekolah,
+        totalSiswa,
+        tahunAjaran
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error mengambil data dashboard admin',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get comprehensive dashboard statistics dengan MongoDB Aggregation Pipeline
 // @route   GET /api/dashboard/stats
 // @access  Public

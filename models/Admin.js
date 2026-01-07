@@ -26,6 +26,22 @@ const adminSchema = new mongoose.Schema({
     enum: ['admin', 'superadmin'],
     default: 'admin'
   },
+  // Mapping ke sekolah (untuk admin biasa)
+  npsn: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  school_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'School',
+    default: null
+  },
+  // Info tambahan
+  phone: {
+    type: String,
+    trim: true
+  },
   isActive: {
     type: Boolean,
     default: true

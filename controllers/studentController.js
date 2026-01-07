@@ -263,3 +263,87 @@ exports.getTahunAjaranList = async (req, res) => {
     });
   }
 };
+
+// @desc    Create new student statistic
+// @route   POST /api/students
+// @access  Private (Admin)
+exports.createStudentStatistic = async (req, res) => {
+  try {
+    const statistic = await StudentStatistic.create(req.body);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Statistik siswa berhasil ditambahkan',
+      data: statistic
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error menambahkan statistik siswa',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Update student statistic
+// @route   PUT /api/students/:id
+// @access  Private (Admin)
+exports.updateStudentStatistic = async (req, res) => {
+  try {
+    const statistic = await StudentStatistic.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!statistic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Statistik siswa tidak ditemukan'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Statistik siswa berhasil diupdate',
+      data: statistic
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Error mengupdate statistik siswa',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Delete student statistic
+// @route   DELETE /api/students/:id
+// @access  Private (Admin)
+exports.deleteStudentStatistic = async (req, res) => {
+  try {
+    const statistic = await StudentStatistic.findByIdAndDelete(req.params.id);
+
+    if (!statistic) {
+      return res.status(404).json({
+        success: false,
+        message: 'Statistik siswa tidak ditemukan'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Statistik siswa berhasil dihapus',
+      data: {}
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error menghapus statistik siswa',
+      error: error.message
+    });
+  }
+};

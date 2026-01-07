@@ -34,15 +34,20 @@ async function importStudentStatistics(jenjang, filename) {
         const statusSekolah = row.status_sekolah || row.kategori_sekolah || 'NEGERI';
         const jumlahSiswa = parseInt(row.jumlah_siswa || row.jumlah_murid || 0);
         
+        // Skip invalid records
+        if (!row.nama_kabupaten_kota || jumlahSiswa < 0) {
+          return;
+        }
+        
         records.push({
-          kode_provinsi: row.kode_provinsi,
-          nama_provinsi: row.nama_provinsi,
-          kode_kabupaten_kota: row.kode_kabupaten_kota,
+          kode_provinsi: row.kode_provinsi || '',
+          nama_provinsi: row.nama_provinsi || 'JAWA BARAT',
+          kode_kabupaten_kota: row.kode_kabupaten_kota || '',
           nama_kabupaten_kota: row.nama_kabupaten_kota,
           jenjang: jenjang,
           status_sekolah: statusSekolah.toUpperCase(),
           jumlah_siswa: jumlahSiswa,
-          tahun_ajaran: row.tahun_ajaran
+          tahun_ajaran: row.tahun_ajaran || '2023/2024'
         });
       })
       .on('end', async () => {
@@ -53,20 +58,29 @@ async function importStudentStatistics(jenjang, filename) {
           // Import dengan batch untuk performa
           const batchSize = 1000;
           let imported = 0;
+          let actualInserted = 0;
           
           for (let i = 0; i < records.length; i += batchSize) {
             const batch = records.slice(i, i + batchSize);
-            await StudentStatistic.insertMany(batch, { ordered: false })
-              .catch(err => {
-                // Ignore duplicate key errors
-                if (err.code !== 11000) throw err;
-              });
-            imported += batch.length;
-            console.log(`   ✓ Imported ${imported}/${records.length}`);
+            try {
+              const result = await StudentStatistic.insertMany(batch, { ordered: false });
+              actualInserted += result.length;
+              imported += batch.length;
+              console.log(`   ✓ Batch ${Math.floor(i / batchSize) + 1}: Inserted ${result.length}/${batch.length} (${actualInserted}/${records.length} total)`);
+            } catch (err) {
+              if (err.code === 11000) {
+                const successCount = batch.length - (err.writeErrors?.length || 0);
+                actualInserted += successCount;
+                imported += batch.length;
+                console.log(`   ⚠️  Batch ${Math.floor(i / batchSize) + 1}: ${successCount} inserted, ${err.writeErrors?.length || 0} duplicates`);
+              } else {
+                throw err;
+              }
+            }
           }
           
-          console.log(`✅ ${jenjang} imported successfully!\n`);
-          resolve(records.length);
+          console.log(`✅ ${jenjang}: ${actualInserted}/${records.length} records inserted successfully!\n`);
+          resolve(actualInserted);
         } catch (error) {
           reject(error);
         }

@@ -43,6 +43,7 @@ const importSchoolsFromCSV = async () => {
     };
 
     let totalImported = 0;
+    let totalActuallyInserted = 0;
 
     for (const [jenjang, fileName] of Object.entries(csvFiles)) {
       const filePath = path.join(dataFolder, fileName);
@@ -55,43 +56,92 @@ const importSchoolsFromCSV = async () => {
       console.log(`\n📖 Reading ${fileName}...`);
       const data = await readCSV(filePath);
       
-      console.log(`📊 Found ${data.length} records for ${jenjang}`);
+      console.log(`📊 Found ${data.length} records in CSV for ${jenjang}`);
 
-      const schools = data.map(row => ({
-        nama_sekolah: row.nama_sekolah,
-        npsn: row.npsn,
-        jenjang: jenjang,
-        status_sekolah: row.status_sekolah?.toUpperCase() || 'SWASTA',
-        alamat_sekolah: row.alamat_sekolah,
-        kode_provinsi: row.kode_provinsi,
-        nama_provinsi: row.nama_provinsi,
-        kode_kabupaten_kota: row.kode_kabupaten_kota,
-        nama_kabupaten_kota: row.nama_kabupaten_kota,
-        bps_kode_kecamatan: row.bps_kode_kecamatan,
-        bps_nama_kecamatan: row.bps_nama_kecamatan,
-        kemendagri_kode_kecamatan: row.kemendagri_kode_kecamatan,
-        kemendagri_nama_kecamatan: row.kemendagri_nama_kecamatan,
-        tahun: parseInt(row.tahun) || 2023,
-        jumlah_siswa: 0,
-        akreditasi: 'Belum Terakreditasi'
-      }));
+      // Validate and transform data
+      const schools = [];
+      let skippedCount = 0;
+      const skipReasons = {};
+      
+      for (const row of data) {
+        // Skip if missing critical fields
+        if (!row.npsn || !row.nama_sekolah) {
+          skippedCount++;
+          skipReasons['missing_npsn_or_name'] = (skipReasons['missing_npsn_or_name'] || 0) + 1;
+          continue;
+        }
+        
+        // Validate required fields according to schema
+        if (!row.alamat_sekolah || row.alamat_sekolah.trim() === '') {
+          skippedCount++;
+          skipReasons['missing_alamat'] = (skipReasons['missing_alamat'] || 0) + 1;
+          continue;
+        }
+        
+        schools.push({
+          nama_sekolah: row.nama_sekolah.trim(),
+          npsn: row.npsn.trim(),
+          jenjang: jenjang,
+          status_sekolah: row.status_sekolah?.toUpperCase() || 'SWASTA',
+          alamat_sekolah: row.alamat_sekolah.trim(),
+          kode_provinsi: row.kode_provinsi || '',
+          nama_provinsi: row.nama_provinsi || '',
+          kode_kabupaten_kota: row.kode_kabupaten_kota || '',
+          nama_kabupaten_kota: row.nama_kabupaten_kota || '',
+          bps_kode_kecamatan: row.bps_kode_kecamatan || '',
+          bps_nama_kecamatan: row.bps_nama_kecamatan || '',
+          kemendagri_kode_kecamatan: row.kemendagri_kode_kecamatan || '',
+          kemendagri_nama_kecamatan: row.kemendagri_nama_kecamatan || '',
+          tahun: parseInt(row.tahun) || 2023,
+          jumlah_siswa: 0,
+          akreditasi: 'TT'  // TT = Tidak Terakreditasi
+        });
+      }
+      
+      if (skippedCount > 0) {
+        console.log(`⚠️  Skipped ${skippedCount} invalid records:`);
+        Object.entries(skipReasons).forEach(([reason, count]) => {
+          console.log(`      - ${reason}: ${count}`);
+        });
+      }
+      
+      console.log(`✓ ${schools.length} valid records ready for import`);
+
+      if (schools.length === 0) {
+        console.log(`⚠️  No valid data to import for ${jenjang}\n`);
+        continue;
+      }
 
       // Insert in batches to avoid memory issues
       const batchSize = 1000;
+      let insertedCount = 0;
+      
       for (let i = 0; i < schools.length; i += batchSize) {
         const batch = schools.slice(i, i + batchSize);
-        await School.insertMany(batch, { ordered: false }).catch(err => {
-          // Ignore duplicate key errors
-          if (err.code !== 11000) throw err;
-        });
-        console.log(`   ✓ Imported ${Math.min(i + batchSize, schools.length)}/${schools.length}`);
+        try {
+          const result = await School.insertMany(batch, { ordered: false });
+          insertedCount += result.length;
+          console.log(`   ✓ Batch ${Math.floor(i / batchSize) + 1}: Inserted ${result.length} records (${insertedCount}/${schools.length} total)`);
+        } catch (err) {
+          // Handle duplicate key errors
+          if (err.code === 11000) {
+            // Count successful inserts from writeErrors
+            const successCount = batch.length - (err.writeErrors?.length || 0);
+            insertedCount += successCount;
+            console.log(`   ⚠️  Batch ${Math.floor(i / batchSize) + 1}: ${successCount} inserted, ${err.writeErrors?.length || 0} duplicates skipped`);
+          } else {
+            console.error(`   ❌ Batch ${Math.floor(i / batchSize) + 1} error:`, err.message);
+            throw err;
+          }
+        }
       }
 
       totalImported += schools.length;
-      console.log(`✅ ${jenjang} imported successfully!`);
+      totalActuallyInserted += insertedCount;
+      console.log(`✅ ${jenjang}: ${insertedCount}/${schools.length} records inserted successfully!`);
     }
 
-    console.log(`\n🎉 Total ${totalImported} schools imported!`);
+    console.log(`\n🎉 Total: ${totalActuallyInserted}/${totalImported} schools imported successfully!`);
     
     // Show statistics
     const stats = await School.aggregate([
