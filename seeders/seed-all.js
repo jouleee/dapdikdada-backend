@@ -29,27 +29,39 @@ const seedAll = async () => {
 
   try {
     // Step 1: Reset database
-    console.log('📋 Step 1/4: Resetting database...');
+    console.log('📋 Step 1/6: Resetting database...');
     console.log('───────────────────────────────────────────────────');
     await runCommand('node', ['seeders/reset-database.js']);
     console.log('\n');
 
     // Step 2: Import admins
-    console.log('📋 Step 2/4: Importing admin accounts...');
+    console.log('📋 Step 2/6: Importing admin accounts...');
     console.log('───────────────────────────────────────────────────');
-    await runCommand('node', ['seeders/import-admins.js']);
+    await runCommand('node', ['seeders/seed-admins.js']);
     console.log('\n');
 
     // Step 3: Import schools
-    console.log('📋 Step 3/4: Importing schools data...');
+    console.log('📋 Step 3/6: Importing schools data...');
     console.log('───────────────────────────────────────────────────');
     await runCommand('node', ['seeders/import-schools.js']);
     console.log('\n');
 
-    // Step 4: Import student statistics
-    console.log('📋 Step 4/4: Importing student statistics...');
+    // Step 4: Generate akreditasi
+    console.log('📋 Step 4/6: Generating akreditasi...');
+    console.log('───────────────────────────────────────────────────');
+    await runCommand('node', ['seeders/seed-akreditasi.js']);
+    console.log('\n');
+
+    // Step 5: Import student statistics
+    console.log('📋 Step 5/6: Importing student statistics...');
     console.log('───────────────────────────────────────────────────');
     await runCommand('node', ['seeders/import-students.js']);
+    console.log('\n');
+
+    // Step 6: Update school student count
+    console.log('📋 Step 6/6: Updating school student count...');
+    console.log('───────────────────────────────────────────────────');
+    await runCommand('node', ['seeders/update-school-student-count.js']);
     console.log('\n');
 
     console.log('═══════════════════════════════════════════════════');

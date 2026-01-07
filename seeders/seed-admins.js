@@ -30,8 +30,14 @@ const seedAdmins = async () => {
       },
     ];
 
-    await Admin.insertMany(admins);
-    console.log('✅ Default admins created successfully!');
+    // Create admins satu per satu agar password ter-hash
+    console.log('📥 Creating admin accounts...\n');
+    for (const adminData of admins) {
+      const admin = await Admin.create(adminData);
+      console.log(`   ✓ Created: ${admin.name} (${admin.email}) - Role: ${admin.role}`);
+    }
+
+    console.log('\n✅ Default admins created successfully!');
     console.log('\n📧 Login credentials:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('Super Admin:');
@@ -41,7 +47,8 @@ const seedAdmins = async () => {
     console.log('Admin:');
     console.log('  Email: admin@dapdik.com');
     console.log('  Password: admin123');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔒 Passwords are automatically hashed with bcrypt\n');
 
     process.exit(0);
   } catch (error) {
