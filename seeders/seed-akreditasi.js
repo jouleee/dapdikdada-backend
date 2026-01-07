@@ -25,23 +25,20 @@ function generateAkreditasi(npsn, jenjang) {
   const seed = npsnToSeed(npsn);
   const random = seededRandom(seed);
   
-  // Distribusi akreditasi:
-  // - 30% A
-  // - 25% B
-  // - 20% C
-  // - 15% TT (Tidak Terakreditasi)
-  // - 10% Belum Terakreditasi (null)
+  // Distribusi akreditasi berdasarkan data Jawa Barat (Akhir 2023):
+  // - 59% A
+  // - 38% B
+  // - 3% C
+  // - 3% TT (Tidak Terakreditasi)
   
-  if (random < 0.30) {
+  if (random < 0.59) {
     return 'A';
-  } else if (random < 0.55) {
+  } else if (random < 0.97) {
     return 'B';
-  } else if (random < 0.75) {
+  } else if (random < 0.99) {
     return 'C';
-  } else if (random < 0.90) {
-    return 'TT';
   } else {
-    return 'Belum Terakreditasi';
+    return 'TT';
   }
 }
 
@@ -58,8 +55,7 @@ const seedAkreditasi = async () => {
       A: 0,
       B: 0,
       C: 0,
-      TT: 0,
-      null: 0
+      TT: 0
     };
     
     console.log('🎲 Generating akreditasi dengan seeded random...');
@@ -69,11 +65,7 @@ const seedAkreditasi = async () => {
       const akreditasi = generateAkreditasi(school.npsn, school.jenjang);
       
       // Count distribution
-      if (akreditasi === null) {
-        distribution.null++;
-      } else {
-        distribution[akreditasi]++;
-      }
+      distribution[akreditasi]++;
       
       return {
         updateOne: {
@@ -95,7 +87,6 @@ const seedAkreditasi = async () => {
     console.log(`   Akreditasi B:              ${distribution.B.toLocaleString('id-ID')} sekolah (${((distribution.B / schools.length) * 100).toFixed(1)}%)`);
     console.log(`   Akreditasi C:              ${distribution.C.toLocaleString('id-ID')} sekolah (${((distribution.C / schools.length) * 100).toFixed(1)}%)`);
     console.log(`   Tidak Terakreditasi (TT):  ${distribution.TT.toLocaleString('id-ID')} sekolah (${((distribution.TT / schools.length) * 100).toFixed(1)}%)`);
-    console.log(`   Belum Terakreditasi:       ${distribution.null.toLocaleString('id-ID')} sekolah (${((distribution.null / schools.length) * 100).toFixed(1)}%)`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('\n💡 Catatan: Akreditasi di-generate dengan seeded random berdasarkan NPSN');
     console.log('   Setiap sekolah akan selalu mendapat akreditasi yang sama (konsisten)');

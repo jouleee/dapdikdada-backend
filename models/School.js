@@ -71,8 +71,8 @@ const schoolSchema = new mongoose.Schema({
   },
   akreditasi: {
     type: String,
-    enum: ['A', 'B', 'C', 'TT', 'Belum Terakreditasi'],
-    default: 'Belum Terakreditasi'
+    enum: ['A', 'B', 'C', 'TT'],
+    default: 'TT'
   }
 }, {
   timestamps: true

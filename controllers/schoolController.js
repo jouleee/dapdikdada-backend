@@ -491,7 +491,8 @@ exports.getPersebaranAnalysis = async (req, res) => {
         matchStage.akreditasi = akreditasi;
       }
     }
-    if (kabupaten) matchStage.nama_kabupaten_kota = new RegExp(kabupaten, 'i');
+    // Use exact match (case-insensitive) for kabupaten filter
+    if (kabupaten) matchStage.nama_kabupaten_kota = new RegExp(`^${kabupaten}$`, 'i');
 
     // Determine sort order
     let sortOrder = { totalSekolah: -1 }; // default: total desc
