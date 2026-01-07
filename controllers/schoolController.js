@@ -212,7 +212,7 @@ exports.getSchoolStats = async (req, res) => {
                   $sum: { $cond: [{ $eq: ['$akreditasi', 'C'] }, 1, 0] }
                 },
                 belum_terakreditasi: {
-                  $sum: { $cond: [{ $eq: ['$akreditasi', 'Belum Terakreditasi'] }, 1, 0] }
+                  $sum: { $cond: [{ $eq: ['$akreditasi', 'TT'] }, 1, 0] }
                 }
               }
             },
@@ -521,7 +521,6 @@ exports.getPersebaranAnalysis = async (req, res) => {
           akreditasiBreakdown: {
             A: 0, B: 0, C: 0, 
             'Tidak Terakreditasi': 0, 
-            'Belum Terakreditasi': 0
           }
         };
       }
@@ -542,7 +541,7 @@ exports.getPersebaranAnalysis = async (req, res) => {
       }
       
       // Count by akreditasi
-      let akreditasiValue = school.akreditasi || 'Belum Terakreditasi';
+      let akreditasiValue = school.akreditasi || 'TT';
       
       // Mapping nilai akreditasi dari database ke label yang ditampilkan
       if (akreditasiValue === 'TT') {
@@ -552,7 +551,8 @@ exports.getPersebaranAnalysis = async (req, res) => {
       if (perKabupatenMap[kab].akreditasiBreakdown.hasOwnProperty(akreditasiValue)) {
         perKabupatenMap[kab].akreditasiBreakdown[akreditasiValue]++;
       } else {
-        perKabupatenMap[kab].akreditasiBreakdown['Belum Terakreditasi']++;
+        // Fallback ke label publik "Tidak Terakreditasi" agar konsisten 4 kategori
+        perKabupatenMap[kab].akreditasiBreakdown['Tidak Terakreditasi']++;
       }
     });
     
@@ -660,7 +660,7 @@ exports.getComparisonAnalysis = async (req, res) => {
           akreditasi_A: { $sum: { $cond: [{ $eq: ['$akreditasi', 'A'] }, 1, 0] } },
           akreditasi_B: { $sum: { $cond: [{ $eq: ['$akreditasi', 'B'] }, 1, 0] } },
           akreditasi_C: { $sum: { $cond: [{ $eq: ['$akreditasi', 'C'] }, 1, 0] } },
-          belum_terakreditasi: { $sum: { $cond: [{ $eq: ['$akreditasi', 'Belum Terakreditasi'] }, 1, 0] } },
+          belum_terakreditasi: { $sum: { $cond: [{ $eq: ['$akreditasi', 'TT'] }, 1, 0] } },
           // Unique kecamatan count
           kecamatan_list: { $addToSet: '$kemendagri_nama_kecamatan' }
         }
@@ -688,7 +688,7 @@ exports.getComparisonAnalysis = async (req, res) => {
             A: '$akreditasi_A',
             B: '$akreditasi_B',
             C: '$akreditasi_C',
-            'Belum Terakreditasi': '$belum_terakreditasi'
+            'TT': '$belum_terakreditasi'
           },
           jumlah_kecamatan: { $size: '$kecamatan_list' }
         }
